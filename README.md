@@ -18,3 +18,5 @@ There is a class in the tests called `WriteLengthFieldDataFileApp` which will wr
 ### Running
 
 To run the Spring Integration components, fire up the app using the the `QuickStartApplication` class' Java main method, or by running it from the command line `mvn spring:run`.
+
+Requires __-Dspring.profiles.active=reactor__ or __-Dspring.profiles.active=si__ to run with reactor or native SI TCP adapters respectively.

@@ -1,15 +1,33 @@
 package org.projectreactor.qs.integration;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.projectreactor.qs.service.MessageCountService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.ImportResource;
+import org.springframework.context.annotation.Profile;
+import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
+import org.springframework.integration.ip.tcp.TcpReceivingChannelAdapter;
+import org.springframework.integration.ip.tcp.connection.AbstractConnectionFactory;
+import org.springframework.integration.ip.tcp.connection.TcpConnectionCloseEvent;
+import org.springframework.integration.ip.tcp.connection.TcpConnectionEvent;
+import org.springframework.integration.ip.tcp.connection.TcpConnectionOpenEvent;
+import org.springframework.integration.ip.tcp.connection.TcpNetServerConnectionFactory;
+import org.springframework.integration.ip.tcp.serializer.ByteArrayLengthHeaderSerializer;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
+import org.springframework.util.StopWatch;
+
 import reactor.core.Environment;
 import reactor.io.Buffer;
 import reactor.io.encoding.LengthFieldCodec;
@@ -22,13 +40,15 @@ import reactor.tcp.config.ServerSocketOptions;
  * @author Jon Brisbin
  */
 @Configuration
-@ImportResource("org/projectreactor/qs/integration/common.xml")
 public class SpringIntegrationConfig {
 
 	@Value("${reactor.port:3000}")
 	private int    reactorPort;
 	@Value("${reactor.dispatcher:ringBuffer}")
 	private String dispatcher;
+
+	@Autowired
+	private MessageCountService msgCnt;
 
 	/**
 	 * Count up messages as they come through the channel.
@@ -54,6 +74,11 @@ public class SpringIntegrationConfig {
 		return factoryBean;
 	}
 
+	@Bean
+	public MessageChannel output() {
+		return new DirectChannel();
+	}
+
 	/**
 	 * Reactor-based TCP InboundChannelAdapter. Since we're testing with random data, we can't really decode anything, so
 	 * the {@link reactor.io.encoding.PassThroughCodec} just skips over any bytes to pretend it's dealt with them.
@@ -65,8 +90,8 @@ public class SpringIntegrationConfig {
 	 *
 	 * @return the new {@code ReactorTcpInboundChannelAdapter}
 	 */
-	@SuppressWarnings("unchecked")
-	@Bean
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Bean @Profile("reactor")
 	public ReactorTcpInboundChannelAdapter tcpChannelAdapter(Environment env, MessageChannel output) {
 		ReactorTcpInboundChannelAdapter tcp = new ReactorTcpInboundChannelAdapter(env,
 		                                                                          reactorPort,
@@ -85,5 +110,52 @@ public class SpringIntegrationConfig {
 			          }
 		          }));
 	}
+
+	@Bean @Profile("si")
+	public TcpReceivingChannelAdapter siTcpChannelAdapter(MessageChannel output) {
+		TcpReceivingChannelAdapter adapter = new TcpReceivingChannelAdapter();
+		adapter.setOutputChannel(output);
+		adapter.setConnectionFactory(connectionFactory());
+		return adapter;
+	}
+
+	@Bean @Profile("si")
+	public AbstractConnectionFactory connectionFactory() {
+//		TcpNioServerConnectionFactory connectionFactory = new TcpNioServerConnectionFactory(reactorPort);
+//		connectionFactory.setTaskExecutor(Executors.newFixedThreadPool(100));
+		TcpNetServerConnectionFactory connectionFactory = new TcpNetServerConnectionFactory(reactorPort);
+		connectionFactory.setLookupHost(false);
+		ByteArrayLengthHeaderSerializer deserializer = new ByteArrayLengthHeaderSkippingSerializer();
+		deserializer.setMaxMessageSize(3000);
+		connectionFactory.setDeserializer(deserializer);
+		return connectionFactory;
+	}
+
+	@Bean @Profile("si")
+	public ApplicationListener<TcpConnectionEvent> listener() {
+		return new ApplicationListener<TcpConnectionEvent>() {
+
+			private final Logger log = LoggerFactory.getLogger(getClass());
+
+			private final Map<Object, StopWatch> stopWatches = new ConcurrentHashMap<>();
+
+			@Override
+			public void onApplicationEvent(TcpConnectionEvent event) {
+				if (event instanceof TcpConnectionOpenEvent) {
+					StopWatch stopWatch = new StopWatch();
+					stopWatches.put(event.getSource(), stopWatch);
+					stopWatch.start();
+				}
+				else if (event instanceof TcpConnectionCloseEvent) {
+					stopWatches.get(event.getSource()).stop();
+					long time =  stopWatches.get(event.getSource()).getLastTaskTimeMillis();
+					// TODO keep count per socket, currently only works with 1
+					log.info("throughput this session: {}/sec in {}ms",
+					         (int)((msgCnt.getCount() * 1000) / time), time);
+					msgCnt.reset();
+				}
+			}
+		};
+	};
 
 }
