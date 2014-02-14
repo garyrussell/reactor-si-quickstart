@@ -118,9 +118,9 @@
 	<repositories>
 		<repository>
 			<id>repo.spring.io.milestone</id>
-			<url>https://repo.spring.io/libs-milestone</url>
+			<url>https://repo.spring.io/libs-snapshot</url>
 			<snapshots>
-				<enabled>false</enabled>
+				<enabled>true</enabled>
 			</snapshots>
 		</repository>
 	</repositories>
@@ -130,7 +130,7 @@
 			<id>repo.spring.io.milestone</id>
 			<url>https://repo.spring.io/libs-snapshot</url>
 			<snapshots>
-				<enabled>false</enabled>
+				<enabled>true</enabled>
 			</snapshots>
 		</pluginRepository>
 	</pluginRepositories>

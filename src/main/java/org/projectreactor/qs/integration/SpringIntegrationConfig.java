@@ -1,38 +1,31 @@
 package org.projectreactor.qs.integration;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.projectreactor.qs.service.MessageCountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.ConsumerEndpointFactoryBean;
 import org.springframework.integration.ip.tcp.TcpReceivingChannelAdapter;
-import org.springframework.integration.ip.tcp.connection.AbstractConnectionFactory;
-import org.springframework.integration.ip.tcp.connection.TcpConnectionCloseEvent;
-import org.springframework.integration.ip.tcp.connection.TcpConnectionEvent;
-import org.springframework.integration.ip.tcp.connection.TcpConnectionOpenEvent;
-import org.springframework.integration.ip.tcp.connection.TcpNetServerConnectionFactory;
+import org.springframework.integration.ip.tcp.connection.*;
 import org.springframework.integration.ip.tcp.serializer.ByteArrayLengthHeaderSerializer;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
 import org.springframework.util.StopWatch;
-
 import reactor.core.Environment;
 import reactor.io.Buffer;
 import reactor.io.encoding.LengthFieldCodec;
 import reactor.io.encoding.PassThroughCodec;
 import reactor.tcp.config.ServerSocketOptions;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * JavaConfig that merges external, XML-based Spring Integration components with Reactor SI compoments.
@@ -43,7 +36,7 @@ import reactor.tcp.config.ServerSocketOptions;
 public class SpringIntegrationConfig {
 
 	@Value("${reactor.port:3000}")
-	private int    reactorPort;
+	private int    tcpPort;
 	@Value("${reactor.dispatcher:ringBuffer}")
 	private String dispatcher;
 
@@ -61,8 +54,8 @@ public class SpringIntegrationConfig {
 	 * @return new {@link org.springframework.integration.config.ConsumerEndpointFactoryBean}
 	 */
 	@Bean
-	public ConsumerEndpointFactoryBean counterEndpoint(final MessageCountService msgCnt,
-	                                                   MessageChannel output) {
+	public ConsumerEndpointFactoryBean messageCounterEndpoint(final MessageCountService msgCnt,
+	                                                          MessageChannel output) {
 		ConsumerEndpointFactoryBean factoryBean = new ConsumerEndpointFactoryBean();
 		factoryBean.setInputChannel(output);
 		factoryBean.setHandler(new MessageHandler() {
@@ -72,11 +65,6 @@ public class SpringIntegrationConfig {
 			}
 		});
 		return factoryBean;
-	}
-
-	@Bean
-	public MessageChannel output() {
-		return new DirectChannel();
 	}
 
 	/**
@@ -90,11 +78,12 @@ public class SpringIntegrationConfig {
 	 *
 	 * @return the new {@code ReactorTcpInboundChannelAdapter}
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@Bean @Profile("reactor")
-	public ReactorTcpInboundChannelAdapter tcpChannelAdapter(Environment env, MessageChannel output) {
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	@Bean
+	@Profile("reactor")
+	public ReactorTcpInboundChannelAdapter reactorTcpChannelAdapter(Environment env, MessageChannel output) {
 		ReactorTcpInboundChannelAdapter tcp = new ReactorTcpInboundChannelAdapter(env,
-		                                                                          reactorPort,
+		                                                                          tcpPort,
 		                                                                          dispatcher);
 		tcp.setOutputChannel(output);
 		return tcp.setServerSocketOptions(new ServerSocketOptions()
@@ -111,19 +100,21 @@ public class SpringIntegrationConfig {
 		          }));
 	}
 
-	@Bean @Profile("si")
+	@Bean
+	@Profile("si")
 	public TcpReceivingChannelAdapter siTcpChannelAdapter(MessageChannel output) {
 		TcpReceivingChannelAdapter adapter = new TcpReceivingChannelAdapter();
 		adapter.setOutputChannel(output);
-		adapter.setConnectionFactory(connectionFactory());
+		adapter.setConnectionFactory(siTcpConnectionFactory());
 		return adapter;
 	}
 
-	@Bean @Profile("si")
-	public AbstractConnectionFactory connectionFactory() {
-//		TcpNioServerConnectionFactory connectionFactory = new TcpNioServerConnectionFactory(reactorPort);
-//		connectionFactory.setTaskExecutor(Executors.newFixedThreadPool(100));
-		TcpNetServerConnectionFactory connectionFactory = new TcpNetServerConnectionFactory(reactorPort);
+	@Bean
+	@Profile("si")
+	public AbstractConnectionFactory siTcpConnectionFactory() {
+		//TcpNioServerConnectionFactory connectionFactory = new TcpNioServerConnectionFactory(tcpPort);
+		//connectionFactory.setTaskExecutor(Executors.newFixedThreadPool(100));
+		TcpNetServerConnectionFactory connectionFactory = new TcpNetServerConnectionFactory(tcpPort);
 		connectionFactory.setLookupHost(false);
 		ByteArrayLengthHeaderSerializer deserializer = new ByteArrayLengthHeaderSkippingSerializer();
 		deserializer.setMaxMessageSize(3000);
@@ -131,8 +122,9 @@ public class SpringIntegrationConfig {
 		return connectionFactory;
 	}
 
-	@Bean @Profile("si")
-	public ApplicationListener<TcpConnectionEvent> listener() {
+	@Bean
+	@Profile("si")
+	public ApplicationListener<TcpConnectionEvent> siTcpStopWatchListener() {
 		return new ApplicationListener<TcpConnectionEvent>() {
 
 			private final Logger log = LoggerFactory.getLogger(getClass());
@@ -141,21 +133,19 @@ public class SpringIntegrationConfig {
 
 			@Override
 			public void onApplicationEvent(TcpConnectionEvent event) {
-				if (event instanceof TcpConnectionOpenEvent) {
+				if(event instanceof TcpConnectionOpenEvent) {
 					StopWatch stopWatch = new StopWatch();
 					stopWatches.put(event.getSource(), stopWatch);
 					stopWatch.start();
-				}
-				else if (event instanceof TcpConnectionCloseEvent) {
+				} else if(event instanceof TcpConnectionCloseEvent) {
 					stopWatches.get(event.getSource()).stop();
-					long time =  stopWatches.get(event.getSource()).getLastTaskTimeMillis();
+					long time = stopWatches.get(event.getSource()).getLastTaskTimeMillis();
 					// TODO keep count per socket, currently only works with 1
 					log.info("throughput this session: {}/sec in {}ms",
 					         (int)((msgCnt.getCount() * 1000) / time), time);
-					msgCnt.reset();
 				}
 			}
 		};
-	};
+	}
 
 }

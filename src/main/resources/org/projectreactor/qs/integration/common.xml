@@ -12,23 +12,6 @@
 	<!-- A single, shared TaskExecutor analogous to that coming from Reactor -->
 	<task:executor id="threadPoolTaskExecutor" pool-size="4"/>
 
-	<!--
-	<beans:bean id="LF" class="org.springframework.integration.ip.tcp.serializer.ByteArrayLfSerializer"/>
-
-	<int-ip:tcp-connection-factory id="connectionFactory"
-	                               task-executor="threadPoolTaskExecutor"
-	                               type="server"
-	                               port="8000"
-	                               using-nio="true"
-	                               using-direct-buffers="false"
-	                               deserializer="LF"/>
-
-	<int-ip:tcp-inbound-channel-adapter id="adapter"
-	                                    channel="output"
-	                                    auto-startup="true"
-	                                    connection-factory="connectionFactory"/>
-	-->
-
 	<!-- output channel that all components publish incoming messages to -->
 	<channel id="output">
 		<!--dispatcher task-executor="ringBufferTaskExecutor"/-->
