@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.integration.endpoint.MessageProducerSupport;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.util.Assert;
 import org.springframework.util.StopWatch;
@@ -86,6 +87,19 @@ public class ReactorTcpInboundChannelAdapter<IN, OUT>
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
 		this.eventPublisher = eventPublisher;
+	}
+
+	/**
+	 * Fluent alias for {@link #setOutputChannel(org.springframework.messaging.MessageChannel)}.
+	 *
+	 * @param outputChannel
+	 * 		the output channel to use
+	 *
+	 * @return {@literal this}
+	 */
+	public ReactorTcpInboundChannelAdapter<IN, OUT> setOutput(MessageChannel outputChannel) {
+		super.setOutputChannel(outputChannel);
+		return this;
 	}
 
 	/**

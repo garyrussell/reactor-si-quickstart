@@ -85,8 +85,8 @@ public class SpringIntegrationConfig {
 		ReactorTcpInboundChannelAdapter tcp = new ReactorTcpInboundChannelAdapter(env,
 		                                                                          tcpPort,
 		                                                                          dispatcher);
-		tcp.setOutputChannel(output);
-		return tcp.setServerSocketOptions(new ServerSocketOptions()
+		return tcp.setOutput(output)
+		          .setServerSocketOptions(new ServerSocketOptions()
 				                                  .tcpNoDelay(true)
 				                                  .backlog(1000)
 				                                  .rcvbuf(1048576)
