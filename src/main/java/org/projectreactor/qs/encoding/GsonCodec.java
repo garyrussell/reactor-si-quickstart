@@ -6,10 +6,9 @@ import reactor.function.Function;
 import reactor.io.Buffer;
 import reactor.io.encoding.Codec;
 
-import java.util.Collections;
-import java.util.Map;
-
 /**
+ * Simple Reactor {@code Codec} that uses Google GSON to transcode data.
+ *
  * @author Jon Brisbin
  */
 public class GsonCodec<IN, OUT> implements Codec<Buffer, IN, OUT> {
@@ -17,8 +16,7 @@ public class GsonCodec<IN, OUT> implements Codec<Buffer, IN, OUT> {
 	private final Gson       gson;
 	private final Class<IN>  inType;
 	private final Class<OUT> outType;
-	private final Encoder<OUT> encoder  = new Encoder<>();
-	private final Map          emptyMap = Collections.emptyMap();
+	private final Encoder<OUT> encoder = new Encoder<>();
 
 	@SuppressWarnings("unchecked")
 	public GsonCodec(Class type) {
@@ -51,17 +49,11 @@ public class GsonCodec<IN, OUT> implements Codec<Buffer, IN, OUT> {
 		@SuppressWarnings("unchecked")
 		@Override
 		public IN apply(Buffer buff) {
-			if(null != next) {
-				next.accept((IN)emptyMap);
-				return null;
-			} else {
-				return (IN)emptyMap;
+			IN in;
+			if(null != (in = (IN)gson.fromJson(buff.asString(), inType)) && null != next) {
+				next.accept(in);
 			}
-			//			IN in;
-			//			if(null != (in = (IN)gson.fromJson(buff.asString(), inType)) && null != next) {
-			//				next.accept(in);
-			//			}
-			//			return in;
+			return in;
 		}
 	}
 

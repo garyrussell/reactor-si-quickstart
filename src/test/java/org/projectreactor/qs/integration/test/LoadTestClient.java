@@ -10,10 +10,25 @@ import java.util.List;
 import java.util.concurrent.*;
 
 /**
+ * Uses the efficient sendfile system call to send data to the server. This is the most efficient way to transmit data
+ * to the server and results in lowering the client's use of the system and keeps it from interfering with throughput
+ * measurements of the server-side components.
+ *
  * @author Jon Brisbin
  */
 public class LoadTestClient {
 
+	/**
+	 * Run a test that transmits the pre-generated data in "src/main/resources/data.bin" to the server.
+	 *
+	 * @param args
+	 * 		arg0: port, arg1: threads
+	 *
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws ExecutionException
+	 * @throws TimeoutException
+	 */
 	public static void main(String... args) throws InterruptedException,
 	                                               IOException,
 	                                               ExecutionException,

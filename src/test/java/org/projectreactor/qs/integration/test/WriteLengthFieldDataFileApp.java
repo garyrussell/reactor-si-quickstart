@@ -9,10 +9,22 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * A simple app to generate length-field-prefixed random data and write it to the file "src/main/resources/data.bin"
+ * for
+ * use later by the {@link org.projectreactor.qs.integration.test.LoadTestClient}.
+ *
  * @author Jon Brisbin
  */
 public class WriteLengthFieldDataFileApp {
 
+	/**
+	 * Generate random data and write it to the data file.
+	 *
+	 * @param args
+	 * 		arg0: the number of records to write
+	 *
+	 * @throws IOException
+	 */
 	public static void main(String... args) throws IOException {
 		long numItems = (args.length == 1 ? Integer.parseInt(args[0]) : 100000);
 		Random random = ThreadLocalRandom.current();

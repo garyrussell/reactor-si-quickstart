@@ -17,6 +17,8 @@ import reactor.io.encoding.PassThroughCodec;
 import reactor.tcp.config.ServerSocketOptions;
 
 /**
+ * JavaConfig that merges external, XML-based Spring Integration components with Reactor SI compoments.
+ *
  * @author Jon Brisbin
  */
 @Configuration
@@ -28,6 +30,16 @@ public class SpringIntegrationConfig {
 	@Value("${reactor.dispatcher:ringBuffer}")
 	private String dispatcher;
 
+	/**
+	 * Count up messages as they come through the channel.
+	 *
+	 * @param msgCnt
+	 * 		the counter service
+	 * @param output
+	 * 		the output channel
+	 *
+	 * @return new {@link org.springframework.integration.config.ConsumerEndpointFactoryBean}
+	 */
 	@Bean
 	public ConsumerEndpointFactoryBean counterEndpoint(final MessageCountService msgCnt,
 	                                                   MessageChannel output) {
@@ -42,6 +54,17 @@ public class SpringIntegrationConfig {
 		return factoryBean;
 	}
 
+	/**
+	 * Reactor-based TCP InboundChannelAdapter. Since we're testing with random data, we can't really decode anything, so
+	 * the {@link reactor.io.encoding.PassThroughCodec} just skips over any bytes to pretend it's dealt with them.
+	 *
+	 * @param env
+	 * 		the Reactor {@code Environment} in use
+	 * @param output
+	 * 		the output channel
+	 *
+	 * @return the new {@code ReactorTcpInboundChannelAdapter}
+	 */
 	@SuppressWarnings("unchecked")
 	@Bean
 	public ReactorTcpInboundChannelAdapter tcpChannelAdapter(Environment env, MessageChannel output) {

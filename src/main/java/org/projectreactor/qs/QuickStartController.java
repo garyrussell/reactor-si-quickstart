@@ -34,6 +34,11 @@ public class QuickStartController {
 		this.throughput = throughput;
 	}
 
+	/**
+	 * Display the current message count from the {@link org.projectreactor.qs.service.MessageCountService}.
+	 *
+	 * @return the current message count
+	 */
 	@RequestMapping(value = "/count", produces = "text/plain")
 	public String count() {
 		int cnt = msgCnt.getCount();
@@ -41,17 +46,32 @@ public class QuickStartController {
 		return String.format("msg count: %s%n", cnt);
 	}
 
+	/**
+	 * Display the current throughput from the {@link org.projectreactor.qs.service.ThroughputService}.
+	 *
+	 * @return the current throughput
+	 */
 	@RequestMapping(value = "/throughput", produces = "text/plain")
 	public String throughput() {
 		int th = throughput.getCurrentThroughput();
 		return String.format("throughput: %s%n", th);
 	}
 
+	/**
+	 * Display a randomly-selected record of data from the {@link org.projectreactor.qs.service.DataService}.
+	 *
+	 * @return a data record
+	 */
 	@RequestMapping(value = "/data/random", produces = "application/json")
 	public Map<String, Object> randomRecord() {
 		return data.getRandomRecord();
 	}
 
+	/**
+	 * Display a sequentially-selected record of data from the {@link org.projectreactor.qs.service.DataService}.
+	 *
+	 * @return a data record
+	 */
 	@RequestMapping(value = "/data/sequential", produces = "application/json")
 	public Map<String, Object> sequentialRecord() {
 		return data.getSequentialRecord();

@@ -29,6 +29,7 @@
 	                                    connection-factory="connectionFactory"/>
 	-->
 
+	<!-- output channel that all components publish incoming messages to -->
 	<channel id="output">
 		<!--dispatcher task-executor="ringBufferTaskExecutor"/-->
 		<!--dispatcher task-executor="workQueueTaskExecutor"/-->

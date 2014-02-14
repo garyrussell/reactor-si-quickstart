@@ -53,6 +53,15 @@ public class ReactorConfig {
 				.setThreads(4);
 	}
 
+	/**
+	 * Provide a Spring {@link org.springframework.core.task.AsyncTaskExecutor} implementation based on the high-speed,
+	 * single-threaded, {@code RingBuffer}-backed {@link reactor.event.dispatch.RingBufferDispatcher}.
+	 *
+	 * @param env
+	 * 		the Reactor {@link reactor.core.Environment}
+	 *
+	 * @return an {@link org.springframework.core.task.AsyncTaskExecutor} based on a single-threaded {@code RingBuffer}
+	 */
 	@Bean
 	public AsyncTaskExecutor ringBufferTaskExecutor(Environment env) {
 		return new RingBufferAsyncTaskExecutor(env)

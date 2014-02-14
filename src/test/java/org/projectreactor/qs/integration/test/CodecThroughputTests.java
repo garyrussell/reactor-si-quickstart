@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Test the relative throughput performance of various codecs.
+ *
  * @author Jon Brisbin
  */
 public class CodecThroughputTests {

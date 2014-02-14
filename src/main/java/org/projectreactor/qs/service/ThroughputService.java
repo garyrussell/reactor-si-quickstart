@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
+ * Keep tabs on the message count and calculate throughput between calls to {@link #getCurrentThroughput()}.
+ *
  * @author Jon Brisbin
  */
 @Service
@@ -19,6 +21,12 @@ public class ThroughputService {
 		this.msgCnt = msgCnt;
 	}
 
+	/**
+	 * Calculate the throughput of the messages that have been published in the system since the last call to this
+	 * method.
+	 *
+	 * @return the current throughput
+	 */
 	public int getCurrentThroughput() {
 		if(msgCnt.getCount() == lastCount) {
 			return lastThroughput;
