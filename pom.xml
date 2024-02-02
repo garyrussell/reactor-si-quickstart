@@ -17,7 +17,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<reactor.version>1.1.0.BUILD-SNAPSHOT</reactor.version>
-		<spring.version>4.0.1.RELEASE</spring.version>
+		<spring.version>5.2.22.RELEASE</spring.version>
 		<spring.integration.version>4.0.0.M3</spring.integration.version>
 		<logback.version>1.2.0</logback.version>
 		<junit.version>4.13.1</junit.version>
